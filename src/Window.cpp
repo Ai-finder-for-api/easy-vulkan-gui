@@ -1,4 +1,5 @@
 #include "Window.h"
+#include <stdexcept>
 
 #ifdef _WIN32
 namespace EasyVK {
