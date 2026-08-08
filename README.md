@@ -66,7 +66,7 @@ int main() {
 git clone https://github.com/microsoft/vcpkg && cd vcpkg && bootstrap-vcpkg.sh
 
 # 2. Clone vgui
-git clone https://github.com/yourusername/vgui && cd vgui
+git clone https://github.com/Ai-finder-for-api/vgui && cd vgui
 
 # 3. Configure + build
 cmake -B build \
