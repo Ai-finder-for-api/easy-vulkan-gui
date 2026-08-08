@@ -1,0 +1,9 @@
+{
+  "name": "vgui",
+  "version": "0.1.0",
+  "description": "A zero-dependency cross-platform GPU-accelerated GUI library with Vulkan and Metal backends",
+  "homepage": "https://github.com/yourusername/vgui",
+  "license": "MIT",
+  "supports": "windows | linux | osx",
+  "dependencies": []
+}
