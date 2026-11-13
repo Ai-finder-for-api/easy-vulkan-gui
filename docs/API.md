@@ -1,135 +1,241 @@
-# evg API reference (v1.0)
+# evg API reference
 
-evg is a zero-dependency C++17 library. The core uses no STL, no libc or libm calls, and no third-party code; Vulkan is
-loaded from the driver at runtime. Qt, OpenEXR and the SDL2 shim are optional layers you enable at build time.
+Every public header lives under `include/evg/`. Include what you use: `<evg/evg.hpp>` brings the
+window, render, model and Qt entry points; the rest are opt-in. Names are in the `evgx` namespace,
+and the global object `evg` is the entry point to the window, render and Vulkan calls.
 
-All functions live on one global object:
+Errors: most calls return `bool`, a pointer or `-1`. After a failure, `evg.error()` returns a
+message describing it (valid until the next call).
 
-```cpp
-#include <evg/evg.hpp>
-evg.createwindow(1280, 720, "title");
-```
+---
 
-## Windows
-
-| call | purpose |
-|---|---|
-| `Window* createwindow(w, h, title)` | open a window (Win32 on Windows; headless elsewhere) |
-| `Window* attach(native, w, h)` | draw into a window someone else owns (Qt winId(), SDL HWND) |
-| `destroywindow(w)` | close and free; attached windows are never destroyed by evg |
-| `bool poll_event(Event&)` | next queued event: `KeyDown`, `KeyUp`, `MouseMotion`, `MouseDown`, `MouseUp`, `MouseWheel`, `Resize`, `Quit` |
-| `window->open()` | pump OS events, update input state and `dt`; false once closed |
-| `double time()`, `sleep(ms)` | monotonic clock and sleep |
-
-Input fields on `Window`: `key_down(k)`, `key_pressed(k)`, `button(b)`, `mouse_x`, `mouse_y`, `dx`, `dy`, `wheel`, `dt`.
-Key codes: letters and digits are uppercase ASCII (`'W'`), other keys are `evgx::key::Left`, `Enter`, `Esc`, ...
-
-## Rendering
-
-| call | purpose |
-|---|---|
-| `bool begin(w, r, g, b)`, `end()` | software frame: clear, draw, present |
-| `camera(Camera)`, `view_proj(view, proj)` | camera for the software and Vulkan paths |
-| `light(dir, color, ambient)` | directional light (used when no environment is set) |
-| `draw(model, world)` | draw a loaded model |
-| `bool screenshot(w, "x.bmp")` | save the software frame |
-| `bool vulkan_clear(w, r, g, b)` | clear and present a window on the GPU (pipelined, two frames in flight) |
-| `const char* gpu()` | the GPU name Vulkan uses |
-
-Cameras and controllers: `Camera` (fly with WASD, Q/E, right-drag look) and `Orbit` (left-drag orbit, wheel zoom).
-
-## Models and lighting
-
-| call | purpose |
-|---|---|
-| `Model* loadglb(path)`, `loadglb_memory(data, size)` | glTF 2.0 binary: meshes, nodes, PBR factors, normals, vertex colors |
-| `freemodel(m)` | release a model |
-| `import_lighting(path.exr)` | image-based lighting from an OpenEXR environment (needs `EVG_WITH_EXR`) |
-| `import_lighting_raw(rgb, w, h)` | the same from float data |
-| `clear_lighting()`, `has_lighting()` | manage the environment |
-
-## Math (GLM-compatible)
-
-Include `<evg/compat/glm.hpp>` and use `glm::`: `vec2/3/4`, `mat2/3/4`, `quat`, `translate`, `rotate`, `scale`,
-`lookAt`, `perspective` (OpenGL and `perspective_vk`), `ortho`, `inverse`, `transpose`, `determinant`, `normalize`,
-`dot`, `cross`, `length`, `reflect`, `refract`, `mix`, `clamp`, `step`, `smoothstep`, `fract`, `mod`, `exp`, `log`, `pow`, `value_ptr`.
-
-## SDL2 shim
-
-Include `<evg/compat/SDL.h>` (put `include/evg/compat` first on the path to replace real SDL): `SDL_Init`,
-`SDL_CreateWindow`, `SDL_PollEvent` (keyboard, mouse, wheel, resize, quit), `SDL_GetKeyboardState`, `SDL_GetMouseState`,
-`SDL_GetRelativeMouseState`, `SDL_GetTicks`, `SDL_GetPerformanceCounter`/`Frequency`, `SDL_Delay`, `SDL_GetWindowSize`.
-
-## Qt 6 (`-DEVG_WITH_QT=ON`)
-
-`evg.qt.*` builds widgets from C-style calls. Every call works the same whether or not Qt is built; without Qt they fail
-and `evg.error()` says why.
-
-| call | purpose |
-|---|---|
-| `init()`, `pump()`, `quit()` | create the Qt application; process events (false when no Qt window is visible) |
-| `createwindow(title, w, h)` | top-level window (host for child widgets) |
-| `createbutton(parent, text, x, y, w, h)` | push button |
-| `createlabel`, `createcheckbox`, `createlineedit` | label, check box, single-line text edit |
-| `createslider(parent, min, max, x, y, w, h)` | horizontal slider |
-| `createcanvas(parent, x, y, w, h)` | Vulkan-presented area; `canvas_window(c)` returns its evg `Window*` |
-| `setclick(w, fn, user)`, `setchange(w, fn, user)` | callbacks: clicks; toggles, slider moves, text edits |
-| `settext`, `gettext`, `setvalue`, `getvalue`, `setchecked`, `getchecked` | read and write widget state |
-| `setenabled`, `setgeometry`, `show`, `hide`, `close`, `click` | layout and automation |
-
-For custom drawing, subclass `evgx::qt::Canvas` (`include/evg/qt/evg_qt.hpp`) and override `frame(Window*)`. Keyboard and
-mouse events from Qt are forwarded to the canvas's evg window.
-
-### Qt features
-
-| area | calls |
-|---|---|
-| layouts | `createbox(parent, vertical, x, y, w, h)`, `addtobox(box, child)`, `setcentral(window, widget)`, `setspacing`, `setmargins` |
-| menus | `addmenu(window, "File")`, `addaction(menu, "&Save", "Ctrl+S", fn, user)`, `addseparator(menu)`, `triggeraction(menu, "Save")` |
-| dialogs | `messagebox(parent, title, text, kind)` (0 info, 1 warning, 2 yes/no), `openfile(parent, title, filter)`, `savefile(...)` |
-| timers | `createtimer(ms, fn, user)` returns an id; `stoptimer(id)` |
-| settings | `setapp(org, app)`, `setsetting(key, value)`, `getsetting(key, fallback)` (QSettings, persisted) |
-| background work | `runasync(work, user, done, duser)`: work on a thread pool, `done` on the GUI thread |
-| tables | `createtable(parent, rows, cols, x, y, w, h)`, `settablecell`, `gettablecell`, `setheader` |
-| style | `setstylesheet(widget, css)` |
-
-Layout example:
+## 1. Windows and frames (`evg.hpp`)
 
 ```cpp
-QtWidget* win = evg.qt.createwindow("app", 480, 320);
-QtWidget* box = evg.qt.createbox(nullptr, true, 0, 0, 0, 0);   // vertical box
-evg.qt.setcentral(win, box);
-evg.qt.addtobox(box, evg.qt.createbutton(nullptr, "Open", 0, 0, 0, 0));
-evg.qt.addtobox(box, evg.qt.createlabel(nullptr, "hello", 0, 0, 0, 0));
-QtWidget* file = evg.qt.addmenu(win, "File");
-evg.qt.addaction(file, "&Open...", "Ctrl+O", [](void*) { /* ... */ }, nullptr);
-evg.qt.show(win);
+evgx::Window* evg.createwindow(int w, int h, const char* title);   // Win32 window with a software framebuffer
+evgx::Window* evg.attach(void* native_hwnd, int w, int h);        // draw into a window the caller owns
+void          evg.destroywindow(evgx::Window* w);                  // releases GPU objects, then the window
+bool          evg.poll_event(evgx::Event& e);                      // next queued event, false when empty
+void          evg.sleep(int ms);
+double        evg.time();                                          // monotonic seconds
 ```
 
-Note: a widget created without a parent stays hidden until it is shown or added to a box.
+`Window` fields you read directly: `width`, `height`, `fbw`, `fbh` (framebuffer), `closed`,
+`mouse_x`, `mouse_y`, `dx`, `dy`, `wheel`, `dt` (seconds, clamped to 0.1), `native` (OS handle).
 
+Events (`evgx::Event`): `type` is one of `Quit`, `KeyDown`, `KeyUp`, `MouseMotion`, `MouseDown`,
+`MouseUp`, `MouseWheel`, `Resize`. The queue holds 256 events; when it is full, new events are dropped.
 
-Minimal app:
+Windows: the OS enforces a minimum client size, so a very small `createwindow` request can come
+back larger. Read `w->width` and `w->height` after creation.
+
+### Software rendering
 
 ```cpp
-#include <evg/evg.hpp>
-evg.qt.init();
-QtWidget* win = evg.qt.createwindow("app", 480, 320);
-QtWidget* b = evg.qt.createbutton(win, "Click", 10, 10, 120, 30);
-evg.qt.setclick(b, [](void* u) { /* ... */ }, nullptr);
-evg.qt.show(win);
-while (evg.qt.pump()) { }
+bool begin(Window* w, float r, float g, float b);   // clears the framebuffer and depth; false if closed or minimized
+void end();
+void camera(const Camera& c);                         // sets view and projection from the window aspect
+void view_proj(const math::mat4& view, const math::mat4& proj);   // OpenGL clip conventions
+void light(const math::vec3<float>& direction, const math::vec3<float>& color, float ambient);
+void draw(const Model* m, const math::mat4& world = math::mat4());
+bool screenshot(Window* w, const char* path_bmp);    // last frame as a 24-bit BMP
 ```
 
-## Build options
+Drawing outside `begin`/`end` does nothing.
 
-| option | default | effect |
-|---|---|---|
-| `EVG_BUILD_TESTS` | ON | test suites (`ctest`) |
-| `EVG_BUILD_EXAMPLES` | ON | example programs |
-| `EVG_WITH_EXR` | OFF | OpenEXR environment lighting |
-| `EVG_WITH_QT` | OFF | Qt 6 widgets and canvas |
+---
 
-Layout: `include/` (public headers), `src/core` (window, input, platform), `src/render` (rasterizer, GLB, lighting),
-`src/vulkan` (GPU backend), `src/compat` (SDL2 shim), `src/qt` (Qt bridge), `src/exr` (OpenEXR module), `tests/`,
-`examples/`, `tools/` (asset generators), `vcpkg/` (overlay port), `docs/`.
+## 2. Input and cameras (`evg.hpp`)
+
+```cpp
+bool  w->key_down(int key);        // held
+bool  w->key_pressed(int key);     // went down this frame
+bool  w->button(int b);            // 0 left, 1 right, 2 middle
+void  w->open();                   // starts a frame: edge flags and wheel reset, dt updates
+```
+
+Keys: uppercase ASCII for letters and digits, and `evgx::key::Left/Right/Up/Down/Enter/Esc/Space/Shift/Ctrl/Tab`.
+
+Cameras:
+
+```cpp
+struct Camera { math::vec3 pos; float yaw, pitch; math::vec3 forward() const; void fly(Window& w, float speed); };
+struct Orbit  { math::vec3 target; float dist, yaw, pitch;
+                void update(Window& w); void frame(const Model* m); Camera camera() const; };
+```
+
+`Camera::fly` moves with W/A/S/D and Q/E (or Ctrl/Space for down/up); Shift triples the speed; drag
+the right mouse button to look. `Orbit::update` zooms with the wheel and rotates with the left button.
+`Orbit::frame` centers on a model's bounds. `Camera` also provides `view()` and `proj(aspect)`;
+`Orbit::camera()` returns a `Camera` you pass to `evg.camera`.
+
+---
+
+## 3. Models (`evg.hpp`, `glb.hpp`)
+
+```cpp
+Model* evg.loadglb(const char* path);
+Model* evg.loadglb_memory(const void* data, size_t n);
+void   evg.freemodel(Model* m);
+```
+
+A loaded `Model` has `nprims`, `ninst`, `nmats`, `skipped` (primitives with unsupported modes),
+`bmin`/`bmax` (world bounds), and the `prims`, `inst` and `mats` arrays.
+
+Supported: GLB 2.0 with triangle lists, `POSITION`, `NORMAL`, `COLOR_0`, indexed or not, and PBR
+factors (`baseColorFactor`, `metallicFactor`, `roughnessFactor`, `emissiveFactor`, `doubleSided`).
+Not supported: skinning, animation, sparse accessors, external buffers, and texture images in
+materials (the textures module below loads them separately).
+
+---
+
+## 4. Textures (`texture.hpp`)
+
+```cpp
+namespace evgx::tex {
+struct Texture { int w, h; uint32_t* pixels; bool valid() const; };   // pixels are 0xAARRGGBB, top row first
+enum class Wrap { Repeat, Clamp };
+
+bool create(Texture& t, int w, int h, uint32_t color = 0xFFFFFFFF);
+void free(Texture& t);
+
+bool load_png(Texture& t, const char* path, const char** err);      // also load_png_memory
+bool load_bmp(Texture& t, const char* path, const char** err);      // also load_bmp_memory
+bool load_tga(Texture& t, const char* path, const char** err);      // also load_tga_memory
+bool save_bmp(const Texture& t, const char* path);
+
+uint32_t fetch(const Texture& t, int x, int y, Wrap = Wrap::Repeat);
+math::vec4<float> sample_nearest(const Texture& t, float u, float v, Wrap = Wrap::Repeat);
+math::vec4<float> sample_bilinear(const Texture& t, float u, float v, Wrap = Wrap::Repeat);
+}
+```
+
+PNG: 8 and 16-bit gray, gray+alpha, RGB and RGBA, 8-bit palette with `tRNS`. Chunk CRCs and
+the zlib Adler-32 are checked. Interlaced files and bit depths 1, 2, 4 are rejected.
+BMP: 24 and 32-bit uncompressed. TGA: truecolor (types 2, 10) and grayscale 8-bit (3, 11).
+
+Textures are CPU-side. There is no GPU upload yet.
+
+---
+
+## 5. Vulkan (`evg.hpp`)
+
+```cpp
+bool  evg.vulkan_clear(Window* w, float r, float g, float b);   // one frame, presented; 2 in flight
+const char* evg.gpu();                                           // device name, after the first Vulkan call
+```
+
+Windows own their swapchain, surface and synchronization objects. `destroywindow` waits for the
+device to go idle and frees them. Closing the last Vulkan window also destroys the command pool,
+device and instance, so the next window starts from a clean context.
+
+Not yet: pipelines, shaders, buffers, textures on the GPU, depth buffer on the GPU.
+
+---
+
+## 6. Lighting (`lighting.hpp`)
+
+Environment light, through the `evg` object (`evg.import_lighting` and friends):
+
+```cpp
+bool evg.import_lighting(const char* exr_path);            // requires EVG_WITH_EXR; false otherwise
+bool evg.import_lighting_raw(const float* rgb, int w, int h);   // linear RGB, no file needed
+void evg.clear_lighting();
+bool evg.has_lighting() const;
+```
+
+Environment light: spherical-harmonic irradiance for diffuse, and a roughness-prefiltered mip chain for specular.
+
+---
+
+## 7. Math (`math.hpp`, `compat/glm.hpp`)
+
+Own implementations of everything: no libm. Include `<evg/compat/glm.hpp>` to use the names with
+the `glm::` prefix.
+
+- Types: `vec2/3/4`, `mat2/3/4`, `quat`, with float, double, int and unsigned variants of vectors.
+- Transforms: `translate`, `scale`, `rotate`, `lookAt`, `perspective` (OpenGL clip), `perspective_vk`
+  (Vulkan clip), `ortho` (4 and 6 argument).
+- Matrix: `inverse` (general 4x4, and 2x2 and 3x3), `transpose`, `determinant`, `value_ptr`, `mat4_cast`, `mat3_cast`.
+- Quaternion: `angleAxis`, `slerp`, `normalize`, `conjugate`.
+- Scalar: `sin`, `cos`, `tan`, `atan`, `atan2`, `asin`, `acos`, `sqrt`, `exp`, `log`, `pow`,
+  `floor`, `ceil`, `fract`, `mod`, `sign`, `step`, `smoothstep`, `min`, `max`, `clamp`, `mix`, `radians`, `degrees`.
+- Vector: `dot`, `cross`, `length`, `distance`, `reflect`, `refract`, component-wise overloads.
+
+Accuracy: sin, cos below 2e-7 absolute, sqrt about 1e-7 relative, exp and pow about 1e-6 relative
+(checked against the C library in `tests/math`).
+
+---
+
+## 8. Qt 6 (`qt/evg_qt.hpp`, requires `EVG_WITH_QT`)
+
+All calls live under `evg.qt`. Every function that creates a widget takes an optional `parent`
+(`nullptr` for a top-level window) and a geometry `x, y, w, h`. Widgets with a parent show
+themselves; use `show` for top-level windows.
+
+| Group | Functions |
+|---|---|
+| Application | `init`, `pump` (returns false when no window is visible), `quit`, `createwindow(title, w, h)` |
+| Buttons and labels | `createbutton`, `createlabel`, `setclick`, `click` |
+| Check and radio | `createcheckbox`, `createradio`, `setchecked`, `getchecked` |
+| Text | `createlineedit`, `createtextedit`, `settext`, `gettext`, `setreadonly` |
+| Numbers | `createslider`, `createspinbox`, `createdoublespinbox`, `createprogress`, `setvalue`, `getvalue`, `setdoublevalue`, `getdoublevalue` |
+| Item lists | `createcombo`, `createlist`, `additem`, `clearitems`, `setcurrentindex`, `getcurrentindex`, `getcurrenttext` |
+| Tables | `createtable`, `settablecell`, `gettablecell`, `setheader` |
+| Containers | `createbox`, `addtobox`, `setcentral`, `setspacing`, `setmargins`, `creategroup`, `createtabs`, `addtab`, `setstatus` |
+| Menus | `addmenu`, `addaction`, `addseparator`, `triggeraction` |
+| Dialogs | `messagebox`, `openfile`, `savefile` |
+| Timers | `createtimer`, `stoptimer` |
+| Settings | `setapp`, `setsetting`, `getsetting` |
+| Background work | `runasync(work, user, done, duser)` (completion on the GUI thread) |
+| Style and geometry | `setstylesheet`, `setenabled`, `setgeometry`, `show`, `hide`, `close`, `isvisible` |
+| Events | `setchange` (value, text, selection or toggle changes, per widget type) |
+| Canvas | `createcanvas`, `canvas_window` (a Vulkan-presented area inside the UI) |
+
+Widget handles are opaque `QtWidget*` values. Strings returned by `gettext`, `getcurrenttext`,
+`gettablecell`, `getsetting`, `openfile` and `savefile` are valid until the next call of the same function.
+
+---
+
+## 9. SDL2 shim (`compat/SDL.h`)
+
+For code written against SDL2. Covers `SDL_Init`, `SDL_Quit`, `SDL_GetError`, `SDL_CreateWindow`,
+`SDL_DestroyWindow`, `SDL_GetWindowSize`, `SDL_PollEvent` (keyboard, mouse, wheel, quit, resize),
+`SDL_GetKeyboardState`, `SDL_GetMouseState`, `SDL_GetRelativeMouseState`, `SDL_SetRelativeMouseMode`,
+`SDL_GetRelativeMouseMode`, `SDL_ShowCursor`, `SDL_GetTicks`, `SDL_GetPerformanceCounter`,
+`SDL_GetPerformanceFrequency`, `SDL_Delay`. Windows are evg windows. Audio, joysticks, and text
+input beyond the active flag are not implemented.
+
+---
+
+## 10. Common helpers (`include/evg/common/`)
+
+All header-only except `file` and `inflate`, which are compiled into the library.
+
+| Header | Contents |
+|---|---|
+| `str.hpp` | `str::View` (non-owning string), `equal`, `starts_with`, `ends_with`, `find`, `trim`, `split`, `to_i64`, `to_f64`, `format_i64` |
+| `utf8.hpp` | `decode`, `encode`, `count`, `valid` (invalid bytes become U+FFFD) |
+| `bits.hpp` | `popcount32/64`, `clz32`, `ctz32`, `is_pow2`, `next_pow2`, `align_up`, `rotl32/rotr32/rotl64`, `bswap32` |
+| `hash.hpp` | `fnv1a32`, `fnv1a64`, `crc32` (IEEE, streamable with a seed), `combine` |
+| `random.hpp` | `splitmix64`, `rnd::Rng` (xoshiro256**; `next`, `uniform`, `range`; deterministic per seed; not cryptographic) |
+| `color.hpp` | `pack`, `red/green/blue/alpha`, `to_u8`, `to_float`, `srgb_to_linear`, `linear_to_srgb`, `hsv_to_rgb`, `lerp` |
+| `arena.hpp` | `mem::Arena` over a caller buffer: `alloc`, `alloc_n<T>`, `mark`, `rewind`, `reset`, `peak` |
+| `ring.hpp` | `ds::Ring<T, N>`: `push` (refuses when full), `push_overwrite`, `pop`, `at`, `size` |
+| `args.hpp` | `cli::Args`: `--flag`, `--key=value`, `--key value`, `-x`, positionals, `--`. Pass boolean flags to the constructor |
+| `log.hpp` | `log::set_sink`, `log::debug/info/warn/error`. Nothing is printed until a sink is installed |
+| `timer.hpp` | `timer::Stopwatch`, `timer::Scoped` |
+| `file.hpp` | `file::size`, `file::read_all`, `file::write_all`, `file::free_buffer` |
+| `inflate.hpp` | `inflate::zlib_decompress`, `deflate_decompress`, `crc32_ieee`, `adler32` |
+
+Example:
+
+```cpp
+#include <evg/common/args.hpp>
+#include <evg/common/str.hpp>
+
+static const char* const kFlags[] = {"json", "help"};
+evgx::cli::Args args(argc, argv, kFlags);
+if (args.has("json")) { /* ... */ }
+int n = args.get_int("count", 10);
+```

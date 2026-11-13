@@ -30,7 +30,8 @@ static void print_model(const char* path, const Model* m, bool json, double ms) 
 }
 
 int main(int argc, char** argv) {
-    cli::Args args(argc, argv);
+    static const char* const kFlags[] = {"json", "help"};
+    cli::Args args(argc, argv, kFlags);
     if (args.positional_count() == 0 || args.has("help")) {
         printf("usage: evg_info [--json] model.glb [more.glb ...]\n");
         return args.has("help") ? 0 : 2;

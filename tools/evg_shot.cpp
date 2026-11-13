@@ -9,7 +9,8 @@
 using namespace evgx;
 
 int main(int argc, char** argv) {
-    cli::Args args(argc, argv);
+    static const char* const kFlags[] = {"help"};
+    cli::Args args(argc, argv, kFlags);
     if (args.positional_count() < 2 || args.has("help")) {
         printf("usage: evg_shot model.glb out.bmp [--size=640x360] [--yaw=40] [--pitch=20] [--bg=RRGGBB]\n");
         return args.has("help") ? 0 : 2;

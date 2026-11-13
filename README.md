@@ -1,68 +1,102 @@
-# evg: easy Vulkan GUI
+# evg — easy Vulkan GUI
 
-A zero-dependency C++17 library for windows, input, the GPU, glTF models and Qt 6 widgets, all behind one simple API:
+evg is a zero-dependency C++17 library for opening windows, presenting Vulkan frames, drawing
+with a software rasterizer, building Qt 6 interfaces, and loading common file formats. The core
+uses no STL, no libc and no third-party code. Qt, OpenEXR and Vulkan are optional and only used
+by the modules that need them.
 
 ```cpp
 #include <evg/evg.hpp>
 
 int main() {
     evgx::Window* w = evg.createwindow(1280, 720, "hello");
-    while (w->open()) {
+    while (w && !w->closed) {
+        w->open();                                   // pump OS events, update dt and input state
         if (w->key_pressed('Q')) break;
-        evg.vulkan_clear(w, 0.1f, 0.2f, 0.4f);   // presented on the GPU
+        evg.vulkan_clear(w, 0.1f, 0.2f, 0.4f);       // GPU frame (Windows; 2 frames in flight)
     }
     evg.destroywindow(w);
 }
 ```
 
-Full reference: [docs/API.md](docs/API.md).
+## Features
 
-## What is in it
+| Area | What is there |
+|---|---|
+| Windows and input | Windows (Win32; headless on Linux), keyboard, mouse, wheel, resize, event queue |
+| Vulkan | Instance, device, swapchain, pipelined clear and present, GPU cleanup on window close |
+| Software rendering | Depth-tested triangles, clipping, Blinn-Phong or image-based lighting, BMP screenshots |
+| Models | glTF 2.0 binary (`.glb`): meshes, PBR factors, scene graph, bounds |
+| Textures | PNG (8/16-bit, palette, not interlaced), BMP, TGA; nearest and bilinear sampling |
+| Math | GLM-compatible vectors, matrices, quaternions, GLSL helpers, no libm |
+| Qt 6 | Windows, layouts, menus, dialogs, buttons, inputs, lists, spin boxes, tables, tabs, timers, settings |
+| SDL2 shim | `SDL_Init`, `SDL_PollEvent`, keyboard and mouse state, timing (for code written against SDL2) |
+| Helpers | strings, UTF-8, bits, hashing, random numbers, colors, arguments, logging, files, timers, arena, ring buffer, DEFLATE |
 
-- **Windows and input:** Win32 windows, an event queue (keys, mouse, wheel, resize, quit), attach to windows owned by others.
-- **GPU presentation:** Vulkan loaded at runtime (no SDK), swapchains, two frames in flight, mailbox or immediate present.
-- **Software rendering:** rasterizer with depth, clipping, culling, lighting, a camera and fly/orbit controllers.
-- **Models:** glTF 2.0 binary (`.glb`) loader, hardened against malformed files by fuzzing under sanitizers.
-- **Lighting:** OpenEXR environment maps with spherical-harmonic irradiance and prefiltered specular (optional module).
-- **Math:** GLM-compatible vectors, matrices, quaternions and GLSL helpers, with our own `sin`, `cos`, `exp`, `log`.
-- **Compatibility:** an SDL2 shim (events, keyboard, mouse, timing) and Qt 6 widgets (`evg.qt.*`) with forwarded input.
+## Requirements
+
+- C++17 compiler. Tested: MSVC 2022 (Windows 10/11, AMD Radeon iGPU, driver 31.0.21924).
+- CMake 3.20+ and Ninja (or Visual Studio).
+- Vulkan driver for the GPU paths. Without one, the Vulkan calls return false and the rest works.
+- Optional: Qt 6.8 (`-DEVG_WITH_QT=ON`), OpenEXR (`-DEVG_WITH_EXR=ON`).
+
+Linux and macOS are not tested. Linux has a headless window path (no display), so software
+rendering and file loading work there. X11, Wayland and Cocoa windows are not implemented.
 
 ## Build
 
+```powershell
+cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release `
+      -DEVG_WITH_QT=ON -DEVG_WITH_EXR=ON `
+      -DCMAKE_PREFIX_PATH="C:/path/to/vcpkg/installed/x64-windows;C:/Qt/6.8.3/msvc2022_64"
+cmake --build build --parallel 2      # Qt needs --parallel 2 on machines with 16 GB RAM
+ctest --test-dir build --output-on-failure
 ```
-cmake -B build -DCMAKE_BUILD_TYPE=Release
-cmake --build build
-ctest --test-dir build
+
+Options:
+
+| Option | Default | Meaning |
+|---|---|---|
+| `EVG_WITH_QT` | OFF | build the Qt 6 bridge (otherwise every Qt call returns an error) |
+| `EVG_WITH_EXR` | OFF | OpenEXR environment map loading |
+| `EVG_BUILD_TESTS` | ON | test executables and `ctest` registration |
+| `EVG_BUILD_EXAMPLES` | ON | examples in `examples/` |
+| `EVG_BUILD_TOOLS` | ON | command-line tools in `tools/` |
+
+## Command-line tools
+
+```text
+evg_info model.glb [more.glb ...] [--json]
+    prints primitives, instances, triangles, materials, load time and bounds.
+
+evg_shot model.glb out.bmp [--size=640x360] [--yaw=40] [--pitch=20] [--bg=RRGGBB]
+    renders the model with an orbit camera and writes a 24-bit BMP.
 ```
 
-Options: `-DEVG_WITH_EXR=ON` for OpenEXR, `-DEVG_WITH_QT=ON` for Qt 6 (set `CMAKE_PREFIX_PATH` to the Qt install).
+Flags: `--json` and `--help` take no value, so `evg_info --json model.glb` works in either order.
 
-Examples: `hello`, `viewer` (orbit a `.glb`), `render_glb` (headless render), `vk_present` (GPU frame rate),
-`qt_canvas`, `qt_app` (Qt widgets).
+## Repository layout
 
-## Layout
-
-```
-include/evg/        public headers (evg.hpp, math.hpp, scene.hpp, lighting.hpp, compat/, qt/)
-src/core/           window, input, event queue, platform (Win32, POSIX)
-src/render/         software rasterizer, GLB loader, lighting
-src/vulkan/         GPU backend: swapchain, frames in flight, readback
+```text
+include/evg/        public headers (evg.hpp, math.hpp, texture.hpp, qt/, compat/, common/)
+src/core/           windows, input, camera, model and render API, platform layer, allocator
+src/render/         software rasterizer, GLB loader, lighting, textures, PNG
+src/vulkan/         Vulkan context, device, swapchain, presentation, cleanup
+src/qt/             Qt bridge, one file per widget family, plus a no-Qt stub
 src/compat/         SDL2 shim
-src/qt/             Qt bridge (and the stub used without Qt)
-src/exr/            OpenEXR reader (optional)
-tests/              math, core, vulkan, lighting, scene, qt suites
-examples/           sample programs
-tools/              dev-time asset generators (not needed to build or use evg)
-vcpkg/ports/evg/    overlay port for vcpkg (fill in the repo and hash first)
-docs/               API reference and images
+src/common/         file helpers, DEFLATE decoder
+tests/              one executable per API area (ctest names start with test_)
+examples/           small programs, each one runs to completion
+tools/              evg_info and evg_shot
+vcpkg/ports/evg/    overlay port for vcpkg (repository URL and hash are placeholders until a release)
+docs/               API reference, changelog, sample images
 ```
 
-## Status
+## Documentation
 
-Working on Windows with an AMD iGPU: Vulkan presentation, Win32 and Qt windows, Qt widgets and input, the software renderer,
-GLB loading, and the test suites. Not yet: textures (PNG/JPEG decoding), skinning and animation, Vulkan scene drawing with
-shaders, X11/Wayland windows, the sqlite3 layer, and freeing GPU resources when windows close.
+- [API reference](docs/API.md): every public module with its functions.
+- [Changelog](CHANGELOG.md): what changed in each version, and the known issues still open.
 
 ## License
 
-MIT (placeholder): choose your license before publishing. See LICENSE.
+MIT. See LICENSE.

@@ -32,6 +32,16 @@ int main() {
     CHECK(strcmp(args.positional(0), "model.glb") == 0 && strcmp(args.positional(1), "--not-an-option") == 0);
     CHECK(args.positional(5) == nullptr);
 
+    // declared boolean flags never swallow the next token; undeclared options still take a value
+    const char* a2[] = {"prog", "--json", "model.glb", "--size", "3"};
+    static const char* const kFlags[] = {"json"};
+    cli::Args typed(5, a2, kFlags);
+    CHECK(typed.has("json") && typed.positional_count() == 1 && strcmp(typed.positional(0), "model.glb") == 0);
+    CHECK(typed.get_int("size", 0) == 3);
+    cli::Args untyped(5, a2);                                 // without the list, "model.glb" becomes --json's value
+    CHECK(untyped.has("json") && strcmp(untyped.get("json", "none"), "model.glb") == 0 && untyped.positional_count() == 0);
+
+
     // colors: packing, channel extraction, clamped conversion, sRGB round trip, hue wheel, lerp
     uint32_t c = color::pack(10, 20, 30, 40);
     CHECK(color::red(c) == 10 && color::green(c) == 20 && color::blue(c) == 30 && color::alpha(c) == 40);

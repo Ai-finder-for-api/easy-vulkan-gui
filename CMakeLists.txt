@@ -73,7 +73,9 @@ if(EVG_BUILD_TESTS)
   function(evg_add_test name src)
     add_executable(${name} ${src})
     target_link_libraries(${name} PRIVATE evg)
-    target_compile_definitions(${name} PRIVATE EVG_ASSET_DIR="${CMAKE_CURRENT_SOURCE_DIR}/tests/assets")
+    target_compile_definitions(${name} PRIVATE
+      EVG_ASSET_DIR="${CMAKE_CURRENT_SOURCE_DIR}/tests/assets"
+      EVG_ROOT_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
     add_test(NAME ${name} COMMAND ${name})
   endfunction()
 
@@ -89,6 +91,7 @@ if(EVG_BUILD_TESTS)
   evg_add_test(test_render_glb    tests/render/test_glb_loader.cpp)
   evg_add_test(test_render_frame  tests/render/test_frame.cpp)
   evg_add_test(test_render_texture tests/render/test_texture.cpp)
+  evg_add_test(test_render_codec   tests/render/test_codec.cpp)
   evg_add_test(test_common_str_utf8         tests/common/test_str_utf8.cpp)
   evg_add_test(test_common_bits_hash_arena  tests/common/test_bits_hash_arena.cpp)
   evg_add_test(test_common_cli_color_log    tests/common/test_cli_color_log.cpp)

@@ -19,12 +19,16 @@ enum class Wrap : int { Repeat = 0, Clamp = 1 };
 bool create(Texture& t, int w, int h, uint32_t color = 0xFFFFFFFFu);
 void free(Texture& t);
 
-// loaders: uncompressed 24/32-bit BMP (BI_RGB, and 32-bit BI_BITFIELDS with BGRA masks); TGA types 2, 10 (RLE)
-// truecolor 24/32-bit, and 3, 11 grayscale 8-bit. Anything else fails with evg.error() set by the caller.
+// loaders: PNG (8 and 16 bit gray, gray+alpha, RGB, RGBA, 8 bit palette; not interlaced), uncompressed 24/32-bit BMP
+// (BI_RGB, and 32-bit BI_BITFIELDS with BGRA masks), TGA types 2, 10 (RLE) truecolor 24/32-bit and 3, 11 grayscale 8-bit.
+// On failure `err` points at a static message.
+bool load_png_memory(Texture& t, const uint8_t* data, size_t n, const char** err);
+bool load_png(Texture& t, const char* path, const char** err);
 bool load_bmp_memory(Texture& t, const uint8_t* data, size_t n, const char** err);
 bool load_tga_memory(Texture& t, const uint8_t* data, size_t n, const char** err);
 bool load_bmp(Texture& t, const char* path, const char** err);
 bool load_tga(Texture& t, const char* path, const char** err);
+
 
 // writes the texture as an uncompressed 32-bit BMP (round trip for tools and tests)
 bool save_bmp(const Texture& t, const char* path);
