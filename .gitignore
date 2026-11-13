@@ -1,0 +1,26 @@
+# build output
+build/
+build-*/
+Deployment/
+Development/
+
+# logs and scratch output from build and test runs
+*.log
+tex_out.txt
+*.bmp
+*.bin
+
+# local dependency trees (vcpkg installs go here; the overlay port under vcpkg/ports is committed)
+vcpkg/installed/
+vcpkg/buildtrees/
+vcpkg/packages/
+vcpkg/downloads/
+vcpkg_installed/
+
+# editor and OS noise
+.vs/
+.vscode/
+*.user
+*.suo
+Thumbs.db
+desktop.ini
