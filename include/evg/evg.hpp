@@ -95,6 +95,9 @@ struct Orbit {                             // drag left mouse to orbit, wheel to
 // Real when built with -DEVG_WITH_QT=ON; otherwise every call fails and error() says so.
 // Widgets are created in a parent's coordinate space: pass a window from createwindow, or a parent widget, or null.
 struct QtWidget;                                      // opaque Qt widget handle
+struct QtPainter;                                     // opaque painter; valid only inside a paint callback
+// paint callback: draws the widget's contents; w and h are the widget's current size
+typedef void (*QtPaintFn)(void* user, QtPainter* p, int w, int h);
 struct QtApi {
     bool available() const;                           // Qt support was compiled in
     bool init();                                      // create the Qt application (once)
@@ -187,6 +190,21 @@ struct QtApi {
     QtWidget* createtabs(QtWidget* parent, int x, int y, int w, int h);
     QtWidget* addtab(QtWidget* tabs, const char* title);  // returns the page widget; create children with it as parent
     void setstatus(QtWidget* window, const char* text);   // status bar of a createwindow window
+
+    // ---- custom painting: the callback draws with the setpaint/fill/stroke/draw functions below ----
+    QtWidget* createpaint(QtWidget* parent, QtPaintFn fn, void* user, int x, int y, int w, int h);
+    void requestpaint(QtWidget* widget);                  // schedules a repaint (safe from any callback)
+    void setpaintcolor(QtPainter* p, int r, int g, int b, int a = 255);   // pen and brush
+    void setpenwidth(QtPainter* p, float px);
+    void setfontsize(QtPainter* p, int px);
+    void setantialias(QtPainter* p, bool on);
+    void fillrect(QtPainter* p, int x, int y, int w, int h);
+    void strokerect(QtPainter* p, int x, int y, int w, int h);
+    void drawline(QtPainter* p, int x1, int y1, int x2, int y2);
+    void fillellipse(QtPainter* p, int x, int y, int w, int h);
+    void strokeellipse(QtPainter* p, int x, int y, int w, int h);
+    void fillpolygon(QtPainter* p, const int* xy, int points);   // xy holds x0,y0,x1,y1,...
+    void drawtext(QtPainter* p, int x, int y, const char* text); // (x, y) is the text baseline
 };
 
 struct Api {

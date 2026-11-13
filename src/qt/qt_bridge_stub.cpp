@@ -1,4 +1,5 @@
-// evg.qt.* without Qt: every call fails with a clear message. The real bridge is qt_bridge.cpp + qt_features.cpp (EVG_WITH_QT=ON).
+// evg.qt.* without Qt: every call fails with a clear message, and every function the API declares has a definition
+// so the library links. The real bridge is src/qt/*.cpp and is compiled when EVG_WITH_QT=ON.
 #include <evg/evg.hpp>
 
 namespace evgx {
@@ -63,5 +64,41 @@ const char* QtApi::gettablecell(QtWidget*, int, int) { return ""; }
 void QtApi::setheader(QtWidget*, int, const char*) {}
 
 void QtApi::setstylesheet(QtWidget*, const char*) {}
+
+QtWidget* QtApi::createradio(QtWidget*, const char*, int, int, int, int) { evg.seterror(kNoQt); return nullptr; }
+QtWidget* QtApi::createspinbox(QtWidget*, int, int, int, int, int, int) { evg.seterror(kNoQt); return nullptr; }
+QtWidget* QtApi::createdoublespinbox(QtWidget*, double, double, int, int, int, int, int) { evg.seterror(kNoQt); return nullptr; }
+void QtApi::setdoublevalue(QtWidget*, double) {}
+double QtApi::getdoublevalue(QtWidget*) { return 0.0; }
+QtWidget* QtApi::createprogress(QtWidget*, int, int, int, int, int, int) { evg.seterror(kNoQt); return nullptr; }
+QtWidget* QtApi::createtextedit(QtWidget*, const char*, int, int, int, int) { evg.seterror(kNoQt); return nullptr; }
+void QtApi::setreadonly(QtWidget*, bool) {}
+
+QtWidget* QtApi::createcombo(QtWidget*, int, int, int, int) { evg.seterror(kNoQt); return nullptr; }
+QtWidget* QtApi::createlist(QtWidget*, int, int, int, int) { evg.seterror(kNoQt); return nullptr; }
+void QtApi::additem(QtWidget*, const char*) {}
+void QtApi::clearitems(QtWidget*) {}
+void QtApi::setcurrentindex(QtWidget*, int) {}
+int  QtApi::getcurrentindex(QtWidget*) { return -1; }
+const char* QtApi::getcurrenttext(QtWidget*) { return ""; }
+
+QtWidget* QtApi::creategroup(QtWidget*, const char*, int, int, int, int) { evg.seterror(kNoQt); return nullptr; }
+QtWidget* QtApi::createtabs(QtWidget*, int, int, int, int) { evg.seterror(kNoQt); return nullptr; }
+QtWidget* QtApi::addtab(QtWidget*, const char*) { evg.seterror(kNoQt); return nullptr; }
+void QtApi::setstatus(QtWidget*, const char*) {}
+
+QtWidget* QtApi::createpaint(QtWidget*, QtPaintFn, void*, int, int, int, int) { evg.seterror(kNoQt); return nullptr; }
+void QtApi::requestpaint(QtWidget*) {}
+void QtApi::setpaintcolor(QtPainter*, int, int, int, int) {}
+void QtApi::setpenwidth(QtPainter*, float) {}
+void QtApi::setfontsize(QtPainter*, int) {}
+void QtApi::setantialias(QtPainter*, bool) {}
+void QtApi::fillrect(QtPainter*, int, int, int, int) {}
+void QtApi::strokerect(QtPainter*, int, int, int, int) {}
+void QtApi::drawline(QtPainter*, int, int, int, int) {}
+void QtApi::fillellipse(QtPainter*, int, int, int, int) {}
+void QtApi::strokeellipse(QtPainter*, int, int, int, int) {}
+void QtApi::fillpolygon(QtPainter*, const int*, int) {}
+void QtApi::drawtext(QtPainter*, int, int, const char*) {}
 
 }  // namespace evgx
