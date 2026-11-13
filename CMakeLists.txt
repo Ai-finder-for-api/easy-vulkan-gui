@@ -1,309 +1,135 @@
-cmake_minimum_required(VERSION 3.21)
+cmake_minimum_required(VERSION 3.20)
+project(evg VERSION 1.0.0 LANGUAGES CXX)
 
-# ╔══════════════════════════════════════════════════════════╗
-# ║                        vgui                             ║
-# ║   Zero-dependency cross-platform GPU GUI library        ║
-# ╚══════════════════════════════════════════════════════════╝
+option(EVG_BUILD_TESTS "Build the test suites" ON)
+option(EVG_BUILD_EXAMPLES "Build the examples" ON)
+option(EVG_BUILD_TOOLS "Build the command-line tools (evg_info, evg_shot)" ON)
+option(EVG_WITH_EXR "evg.import_lighting() reads OpenEXR files (needs OpenEXR + Imath)" OFF)
+option(EVG_WITH_QT "evg.qt.* widgets and the Qt canvas (needs Qt 6 Widgets; set CMAKE_PREFIX_PATH to the Qt install)" OFF)
 
-project(vgui
-    VERSION      0.1.0
-    DESCRIPTION  "Zero-dependency cross-platform GPU-accelerated GUI library"
-    HOMEPAGE_URL "https://github.com/yourusername/vgui"
-    LANGUAGES    CXX
-)
-
-# ── Standard ──────────────────────────────────────────────
-set(CMAKE_CXX_STANDARD          20)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS        OFF)
-
-# ── Options ───────────────────────────────────────────────
-option(VGUI_BUILD_EXAMPLES  "Build example programs"  ON)
-option(VGUI_BUILD_TESTS     "Build unit tests"        OFF)
-option(VGUI_VALIDATION      "Enable GPU validation"   OFF)
-
-# Auto-select backend
-if(APPLE)
-    set(VGUI_BACKEND "Metal"  CACHE STRING "Rendering backend")
-elseif(WIN32 OR UNIX)
-    set(VGUI_BACKEND "Vulkan" CACHE STRING "Rendering backend")
-endif()
-
-message(STATUS "[vgui] Backend : ${VGUI_BACKEND}")
-message(STATUS "[vgui] Platform: ${CMAKE_SYSTEM_NAME}")
-
-# ── Sources ───────────────────────────────────────────────
-set(VGUI_CORE_SOURCES
-    src/core/application.cpp
-    src/core/window.cpp
-    src/core/renderer.cpp
-    src/core/context.cpp
-    src/core/config.cpp
-    src/core/logger.cpp
-)
-
-set(VGUI_PLATFORM_SOURCES_WINDOWS
-    src/platform/windows/win32_window.cpp
-    src/platform/windows/win32_input.cpp
-    src/platform/windows/win32_monitor.cpp
-    src/platform/windows/win32_cursor.cpp
-    src/platform/windows/win32_clipboard.cpp
-)
-
-set(VGUI_PLATFORM_SOURCES_LINUX
-    src/platform/linux/x11_window.cpp
-    src/platform/linux/x11_input.cpp
-    src/platform/linux/x11_monitor.cpp
-    src/platform/linux/wayland_window.cpp
-    src/platform/linux/wayland_input.cpp
-)
-
-set(VGUI_PLATFORM_SOURCES_MACOS
-    src/platform/macos/ns_window.mm
-    src/platform/macos/ns_input.mm
-    src/platform/macos/ns_monitor.mm
-    src/platform/macos/ns_cursor.mm
-    src/platform/macos/ns_clipboard.mm
-)
-
-set(VGUI_INPUT_SOURCES
-    src/input/input_manager.cpp
-    src/input/keyboard.cpp
-    src/input/mouse.cpp
-    src/input/gamepad.cpp
-    src/input/touch.cpp
-    src/input/event_queue.cpp
-)
-
-set(VGUI_WINDOW_SOURCES
-    src/window/window_manager.cpp
-    src/window/window_base.cpp
-    src/window/cursor.cpp
-    src/window/monitor.cpp
-    src/window/clipboard.cpp
-)
-
-set(VGUI_BACKEND_COMMON_SOURCES
-    src/backend/common/backend.cpp
-    src/backend/common/gpu.cpp
-    src/backend/common/allocator.cpp
-    src/backend/common/memory.cpp
-)
-
-set(VGUI_BACKEND_VULKAN_SOURCES
-    src/backend/vulkan/vk_instance.cpp
-    src/backend/vulkan/vk_surface.cpp
-    src/backend/vulkan/vk_physical_device.cpp
-    src/backend/vulkan/vk_device.cpp
-    src/backend/vulkan/vk_queue.cpp
-    src/backend/vulkan/vk_swapchain.cpp
-    src/backend/vulkan/vk_renderpass.cpp
-    src/backend/vulkan/vk_framebuffer.cpp
-    src/backend/vulkan/vk_pipeline.cpp
-    src/backend/vulkan/vk_shader.cpp
-    src/backend/vulkan/vk_buffer.cpp
-    src/backend/vulkan/vk_image.cpp
-    src/backend/vulkan/vk_texture.cpp
-    src/backend/vulkan/vk_sampler.cpp
-    src/backend/vulkan/vk_descriptor.cpp
-    src/backend/vulkan/vk_command_pool.cpp
-    src/backend/vulkan/vk_command_buffer.cpp
-    src/backend/vulkan/vk_sync.cpp
-    src/backend/vulkan/vk_upload.cpp
-    src/backend/vulkan/vk_barrier.cpp
-    src/backend/vulkan/vk_debug.cpp
-    src/backend/vulkan/vk_renderer.cpp
-)
-
-set(VGUI_BACKEND_METAL_SOURCES
-    src/backend/metal/mtl_device.mm
-    src/backend/metal/mtl_swapchain.mm
-    src/backend/metal/mtl_pipeline.mm
-    src/backend/metal/mtl_buffer.mm
-    src/backend/metal/mtl_texture.mm
-    src/backend/metal/mtl_sampler.mm
-    src/backend/metal/mtl_command.mm
-    src/backend/metal/mtl_renderer.mm
-)
-
-set(VGUI_GRAPHICS_SOURCES
-    src/graphics/texture.cpp
-    src/graphics/image.cpp
-    src/graphics/sampler.cpp
-    src/graphics/buffer.cpp
-    src/graphics/shader.cpp
-    src/graphics/pipeline.cpp
-    src/graphics/material.cpp
-    src/graphics/mesh.cpp
-    src/graphics/descriptor.cpp
-    src/graphics/framebuffer.cpp
-    src/graphics/renderpass.cpp
-    src/graphics/command.cpp
-    src/graphics/camera.cpp
-)
-
-set(VGUI_SCENE_SOURCES
-    src/scene/scene.cpp
-    src/scene/entity.cpp
-    src/scene/transform.cpp
-    src/scene/node.cpp
-    src/scene/light.cpp
-    src/scene/model.cpp
-)
-
-set(VGUI_UI_SOURCES
-    src/ui/canvas.cpp
-    src/ui/widget.cpp
-    src/ui/button.cpp
-    src/ui/label.cpp
-    src/ui/textbox.cpp
-    src/ui/panel.cpp
-    src/ui/layout.cpp
-    src/ui/font.cpp
-)
-
-set(VGUI_MATH_SOURCES
-    src/math/vec2.cpp
-    src/math/vec3.cpp
-    src/math/vec4.cpp
-    src/math/mat4.cpp
-    src/math/quat.cpp
-    src/math/color.cpp
-)
-
-set(VGUI_UTIL_SOURCES
-    src/util/timer.cpp
-    src/util/filesystem.cpp
-    src/util/uuid.cpp
-    src/util/profiler.cpp
-)
-
-# ── Assemble sources ───────────────────────────────────────
-set(VGUI_ALL_SOURCES
-    ${VGUI_CORE_SOURCES}
-    ${VGUI_INPUT_SOURCES}
-    ${VGUI_WINDOW_SOURCES}
-    ${VGUI_BACKEND_COMMON_SOURCES}
-    ${VGUI_GRAPHICS_SOURCES}
-    ${VGUI_SCENE_SOURCES}
-    ${VGUI_UI_SOURCES}
-    ${VGUI_MATH_SOURCES}
-    ${VGUI_UTIL_SOURCES}
-)
+# ---------------- library ----------------
+# Every .cpp in a module folder is part of the library; platform files are chosen per OS below.
+file(GLOB EVG_CORE_SOURCES CONFIGURE_DEPENDS src/core/*.cpp)
+list(FILTER EVG_CORE_SOURCES EXCLUDE REGEX "platform_")
+file(GLOB EVG_RENDER_SOURCES CONFIGURE_DEPENDS src/render/*.cpp)
+file(GLOB EVG_VULKAN_SOURCES CONFIGURE_DEPENDS src/vulkan/*.cpp)
+file(GLOB EVG_COMPAT_SOURCES CONFIGURE_DEPENDS src/compat/*.cpp)
+file(GLOB EVG_COMMON_SOURCES CONFIGURE_DEPENDS src/common/*.cpp)
+add_library(evg STATIC ${EVG_CORE_SOURCES} ${EVG_RENDER_SOURCES} ${EVG_VULKAN_SOURCES} ${EVG_COMPAT_SOURCES} ${EVG_COMMON_SOURCES})
+add_library(evg::evg ALIAS evg)
 
 if(WIN32)
-    list(APPEND VGUI_ALL_SOURCES ${VGUI_PLATFORM_SOURCES_WINDOWS})
-elseif(APPLE)
-    list(APPEND VGUI_ALL_SOURCES ${VGUI_PLATFORM_SOURCES_MACOS})
-elseif(UNIX)
-    list(APPEND VGUI_ALL_SOURCES ${VGUI_PLATFORM_SOURCES_LINUX})
-endif()
-
-if(VGUI_BACKEND STREQUAL "Vulkan")
-    list(APPEND VGUI_ALL_SOURCES ${VGUI_BACKEND_VULKAN_SOURCES})
-elseif(VGUI_BACKEND STREQUAL "Metal")
-    list(APPEND VGUI_ALL_SOURCES ${VGUI_BACKEND_METAL_SOURCES})
-endif()
-
-# ── Library ────────────────────────────────────────────────
-add_library(vgui ${VGUI_ALL_SOURCES})
-add_library(vgui::vgui ALIAS vgui)
-
-target_include_directories(vgui
-    PUBLIC
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-        $<INSTALL_INTERFACE:include>
-)
-
-# ── Platform links (OS-provided, zero external deps) ──────
-if(WIN32)
-    target_link_libraries(vgui PRIVATE user32 gdi32 dwmapi hid)
-    target_compile_definitions(vgui PUBLIC
-        VGUI_PLATFORM_WINDOWS
-        NOMINMAX
-        WIN32_LEAN_AND_MEAN
-        _CRT_SECURE_NO_WARNINGS
-        UNICODE
-        _UNICODE
-    )
-elseif(APPLE)
-    target_link_libraries(vgui PRIVATE
-        "-framework Cocoa"
-        "-framework Metal"
-        "-framework MetalKit"
-        "-framework QuartzCore"
-        "-framework IOKit"
-        "-framework CoreFoundation"
-        "-framework CoreGraphics"
-    )
-    target_compile_definitions(vgui PUBLIC VGUI_PLATFORM_MACOS)
-elseif(UNIX)
-    find_package(X11 REQUIRED)
-    target_link_libraries(vgui PRIVATE ${X11_LIBRARIES} ${CMAKE_DL_LIBS})
-    target_compile_definitions(vgui PUBLIC VGUI_PLATFORM_LINUX)
-endif()
-
-if(VGUI_BACKEND STREQUAL "Vulkan")
-    find_package(Vulkan REQUIRED)
-    target_link_libraries(vgui PUBLIC Vulkan::Vulkan)
-    target_compile_definitions(vgui PUBLIC VGUI_BACKEND_VULKAN)
-endif()
-
-if(VGUI_BACKEND STREQUAL "Metal")
-    target_compile_definitions(vgui PUBLIC VGUI_BACKEND_METAL)
-endif()
-
-if(VGUI_VALIDATION)
-    target_compile_definitions(vgui PUBLIC VGUI_VALIDATION_ENABLED)
-endif()
-
-# ── Compiler warnings ──────────────────────────────────────
-if(MSVC)
-    target_compile_options(vgui PRIVATE /W4)
+  target_sources(evg PRIVATE src/core/platform_win32.cpp)
+  target_link_libraries(evg PUBLIC user32)
 else()
-    target_compile_options(vgui PRIVATE -Wall -Wextra -Wpedantic)
+  target_sources(evg PRIVATE src/core/platform_posix.cpp)
+  target_link_libraries(evg PUBLIC ${CMAKE_DL_LIBS})
 endif()
 
-# ── Examples ───────────────────────────────────────────────
-if(VGUI_BUILD_EXAMPLES)
-    add_subdirectory(examples)
+if(EVG_WITH_QT)
+  find_package(Qt6 REQUIRED COMPONENTS Widgets)
+  file(GLOB EVG_QT_SOURCES CONFIGURE_DEPENDS src/qt/*.cpp)
+  list(FILTER EVG_QT_SOURCES EXCLUDE REGEX "qt_bridge_stub")
+  target_sources(evg PRIVATE ${EVG_QT_SOURCES})
+  target_link_libraries(evg PRIVATE Qt6::Widgets)
+else()
+  target_sources(evg PRIVATE src/qt/qt_bridge_stub.cpp)
 endif()
 
-# ── Install ────────────────────────────────────────────────
+if(EVG_WITH_EXR)
+  find_package(OpenEXR CONFIG REQUIRED)
+  target_sources(evg PRIVATE src/exr/evg_exr.cpp)
+  target_link_libraries(evg PRIVATE OpenEXR::OpenEXR)
+  target_compile_definitions(evg PUBLIC EVG_WITH_EXR=1)
+endif()
+
+target_compile_features(evg PUBLIC cxx_std_17)
+if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+  target_compile_options(evg PRIVATE -fno-exceptions -fno-rtti -fno-stack-protector)
+  if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    target_compile_options(evg PRIVATE -fno-tree-loop-distribute-patterns)   # keep our loops from becoming memset/memcpy calls
+  endif()
+endif()
+
+target_include_directories(evg PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>)
+# internal module directories (headers used across them; not part of the public API)
+target_include_directories(evg PRIVATE src/core src/render src/vulkan src/compat src/qt src/exr)
+
+# ---------------- install / package config ----------------
 include(GNUInstallDirs)
-include(CMakePackageConfigHelpers)
+install(TARGETS evg EXPORT evgTargets ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
+install(DIRECTORY include/ DESTINATION include)
+install(EXPORT evgTargets NAMESPACE evg:: DESTINATION lib/cmake/evg)
+file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/evgConfig.cmake
+  "include(\"\${CMAKE_CURRENT_LIST_DIR}/evgTargets.cmake\")\n")
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/evgConfig.cmake DESTINATION lib/cmake/evg)
 
-install(TARGETS vgui
-    EXPORT      vguiTargets
-    ARCHIVE     DESTINATION ${CMAKE_INSTALL_LIBDIR}
-    LIBRARY     DESTINATION ${CMAKE_INSTALL_LIBDIR}
-    RUNTIME     DESTINATION ${CMAKE_INSTALL_BINDIR}
-)
+# ---------------- tests ----------------
+if(EVG_BUILD_TESTS)
+  enable_testing()
+  # one test executable per file; the test name is the target name
+  function(evg_add_test name src)
+    add_executable(${name} ${src})
+    target_link_libraries(${name} PRIVATE evg)
+    target_compile_definitions(${name} PRIVATE EVG_ASSET_DIR="${CMAKE_CURRENT_SOURCE_DIR}/tests/assets")
+    add_test(NAME ${name} COMMAND ${name})
+  endfunction()
 
-install(DIRECTORY include/
-    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
-)
+  # math, core, compat, render: one file per API area
+  evg_add_test(test_math_scalar   tests/math/test_scalar.cpp)
+  evg_add_test(test_math_glsl     tests/math/test_glsl.cpp)
+  evg_add_test(test_math_matrix   tests/math/test_matrix.cpp)
+  evg_add_test(test_math_quat     tests/math/test_quat.cpp)
+  evg_add_test(test_core_events   tests/core/test_events.cpp)
+  evg_add_test(test_core_input    tests/core/test_input.cpp)
+  evg_add_test(test_core_camera   tests/core/test_camera.cpp)
+  evg_add_test(test_compat_sdl    tests/compat/test_sdl.cpp)
+  evg_add_test(test_render_glb    tests/render/test_glb_loader.cpp)
+  evg_add_test(test_render_frame  tests/render/test_frame.cpp)
+  evg_add_test(test_render_texture tests/render/test_texture.cpp)
+  evg_add_test(test_common_str_utf8         tests/common/test_str_utf8.cpp)
+  evg_add_test(test_common_bits_hash_arena  tests/common/test_bits_hash_arena.cpp)
+  evg_add_test(test_common_cli_color_log    tests/common/test_cli_color_log.cpp)
+  evg_add_test(test_vk_cleanup              tests/vulkan/test_vk_cleanup.cpp)
 
-install(EXPORT vguiTargets
-    FILE        vguiTargets.cmake
-    NAMESPACE   vgui::
-    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/vgui
-)
+  # broader suites from earlier versions (still useful end-to-end checks)
+  foreach(t math core vulkan lighting scene)
+    evg_add_test(test_${t} tests/test_${t}.cpp)
+  endforeach()
+  if(EVG_WITH_QT)
+    add_executable(test_qt tests/test_qt.cpp)
+    target_link_libraries(test_qt PRIVATE evg Qt6::Widgets)
+    add_test(NAME qt COMMAND test_qt)
+    add_executable(test_qt_features tests/qt/test_qt_features.cpp)
+    target_link_libraries(test_qt_features PRIVATE evg Qt6::Widgets)
+    add_test(NAME qt_features COMMAND test_qt_features)
+    add_executable(test_qt_widgets2 tests/qt/test_qt_widgets2.cpp)
+    target_link_libraries(test_qt_widgets2 PRIVATE evg Qt6::Widgets)
+    add_test(NAME qt_widgets2 COMMAND test_qt_widgets2)
+  endif()
+endif()
 
-configure_package_config_file(
-    cmake/vguiConfig.cmake.in
-    ${CMAKE_CURRENT_BINARY_DIR}/vguiConfig.cmake
-    INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/vgui
-)
+# ---------------- tools (command-line programs built on the helpers) ----------------
+if(EVG_BUILD_TOOLS)
+  foreach(t evg_info evg_shot)
+    add_executable(${t} tools/${t}.cpp)
+    target_link_libraries(${t} PRIVATE evg)
+  endforeach()
+endif()
 
-write_basic_package_version_file(
-    ${CMAKE_CURRENT_BINARY_DIR}/vguiConfigVersion.cmake
-    VERSION     ${PROJECT_VERSION}
-    COMPATIBILITY SameMajorVersion
-)
+# ---------------- examples ----------------
+if(EVG_BUILD_EXAMPLES)
+  foreach(e hello viewer vk_present render_glb ex_glb_info ex_orbit_shots ex_sdl_loop)
+    add_executable(${e} examples/${e}.cpp)
+    target_link_libraries(${e} PRIVATE evg)
+  endforeach()
+  if(EVG_WITH_QT)
+    foreach(e qt_canvas qt_app ex_qt_layout ex_qt_background ex_qt_table)
+      add_executable(${e} examples/${e}.cpp)
+      target_link_libraries(${e} PRIVATE evg Qt6::Widgets)
+    endforeach()
+  endif()
+endif()
 
-install(FILES
-    ${CMAKE_CURRENT_BINARY_DIR}/vguiConfig.cmake
-    ${CMAKE_CURRENT_BINARY_DIR}/vguiConfigVersion.cmake
-    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/vgui
-)
