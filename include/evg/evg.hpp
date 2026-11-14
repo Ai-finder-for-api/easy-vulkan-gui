@@ -211,6 +211,13 @@ struct Api {
     QtApi qt;                                         // evg.qt.createwindow / createbutton / ...
     void seterror(const char* message);               // lets optional modules report failures through error()
 
+    // --- GPU mesh rendering (Vulkan): a model is uploaded once and drawn with a view-projection matrix ---
+    // Draws into a window (rendered offscreen, copied to the swapchain, presented). Synchronous: returns when the GPU is done.
+    bool vulkan_draw(Window* w, const Model* m, const math::mat4& viewProj, float r = 0.f, float g = 0.f, float b = 0.f);
+    // Renders into width x height pixels and reads them back as 0xAARRGGBB, top row first. Useful for tests and tools.
+    bool vulkan_render_pixels(uint32_t width, uint32_t height, const Model* m, const math::mat4& viewProj, uint32_t* out,
+                              float r = 0.f, float g = 0.f, float b = 0.f);
+
     // --- windows ---
     Window* createwindow(int width, int height, const char* title);   // headless (offscreen) on platforms without a backend
     // Use a window someone else created (a Qt widget's winId(), an SDL window's HWND, ...). evg draws into it and

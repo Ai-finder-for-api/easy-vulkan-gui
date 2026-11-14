@@ -1,6 +1,7 @@
 // GPU cleanup: frees one window's Vulkan objects (sync objects, swapchain, surface). When the last window goes,
 // the command pool, device and instance are destroyed too, so a later window starts from a clean context.
 #include "vk_types.hpp"
+#include "vk_render.hpp"
 
 namespace evgx { namespace vkp {
 
@@ -29,6 +30,7 @@ void destroy_window_objects(WinSwap& s) {
 
 // destroys the shared device-level objects and the instance; resets the context so vk_init_context can run again
 void vk_shutdown() {
+    render_shutdown();                                   // render objects use the device; release them first
     if (!g_ctx.ready) return;
     if (g_ctx.dev) {
         g_ctx.f.deviceWaitIdle(g_ctx.dev);

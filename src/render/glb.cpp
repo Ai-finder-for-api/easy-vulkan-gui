@@ -6,8 +6,11 @@
 namespace evgx {
 using namespace glbi;
 
+namespace vkp { void free_model_gpu(const Model* m); }   // src/vulkan/vk_render.cpp
+
 void model_free(Model* m) {
     if (!m) return;
+    vkp::free_model_gpu(m);                          // drop the GPU copy first; it refers to this model's arrays only by key
     for (int i = 0; i < m->nprims; i++) {
         mem_free(m->prims[i].pos);
         mem_free(m->prims[i].nrm);

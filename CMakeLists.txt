@@ -96,6 +96,7 @@ if(EVG_BUILD_TESTS)
   evg_add_test(test_common_bits_hash_arena  tests/common/test_bits_hash_arena.cpp)
   evg_add_test(test_common_cli_color_log    tests/common/test_cli_color_log.cpp)
   evg_add_test(test_vk_cleanup              tests/vulkan/test_vk_cleanup.cpp)
+  evg_add_test(test_vk_render               tests/vulkan/test_vk_render.cpp)
 
   # broader suites from earlier versions (still useful end-to-end checks)
   foreach(t math core vulkan lighting scene)
