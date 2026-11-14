@@ -24,3 +24,6 @@ vcpkg_installed/
 *.suo
 Thumbs.db
 desktop.ini
+
+# backup copies written by the file tools
+*.bak*
