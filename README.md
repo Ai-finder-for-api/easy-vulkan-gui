@@ -24,7 +24,7 @@ int main() {
 | Area | What is there |
 |---|---|
 | Windows and input | Windows (Win32; headless on Linux), keyboard, mouse, wheel, resize, event queue |
-| Vulkan | Instance, device, swapchain, pipelined clear and present, GPU cleanup on window close |
+| Vulkan | Instance, device, swapchain, pipelined clear and present, mesh rendering with depth (`vulkan_draw`), GPU cleanup on window close |
 | Software rendering | Depth-tested triangles, clipping, Blinn-Phong or image-based lighting, BMP screenshots |
 | Models | glTF 2.0 binary (`.glb`): meshes, PBR factors, scene graph, bounds |
 | Textures | PNG (8/16-bit, palette, not interlaced), BMP, TGA; nearest and bilinear sampling |

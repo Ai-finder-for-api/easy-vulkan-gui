@@ -121,17 +121,32 @@ Textures are CPU-side. There is no GPU upload yet.
 ## 5. Vulkan (`evg.hpp`)
 
 ```cpp
-bool  evg.vulkan_clear(Window* w, float r, float g, float b);   // one frame, presented; 2 in flight
-const char* evg.gpu();                                           // device name, after the first Vulkan call
+bool  evg.vulkan_clear(Window* w, float r, float g, float b);     // clears and presents one frame
+bool  evg.vulkan_draw(Window* w, const Model* m, const math::mat4& view_proj,
+                      float r = 0, float g = 0, float b = 0);     // draws a model and presents it
+bool  evg.vulkan_render_pixels(uint32_t w, uint32_t h, const Model* m, const math::mat4& view_proj,
+                               uint32_t* out, float r = 0, float g = 0, float b = 0);   // GPU frame read back
+const char* evg.gpu();                                              // device name, after the first Vulkan call
 ```
+
+`vulkan_draw` renders into an offscreen target of the window's size, copies the result into the
+swapchain image and presents it. `vulkan_render_pixels` returns the same frame as 0xAARRGGBB pixels,
+top row first; it is meant for tests, tools and screenshots.
+
+Mesh rendering details:
+
+- Pipeline: vertex positions, normals and colors; a push constant block holds the view-projection
+  matrix and the model matrix of each instance. Depth test on, no culling, triangle lists only.
+- Shading: one directional light and an ambient term (`mesh.frag`). Vertices without `NORMAL` use the
+  normal (0, 0, 1); vertices without `COLOR_0` use the material's `baseColorFactor`.
+- Models are uploaded to host-visible vertex and index buffers the first time they are drawn, and
+  freed by `freemodel`. Each call waits for the GPU to finish, so frames are not pipelined on this path.
+- Not yet: textures on the GPU, environment lighting, the material's metallic and roughness terms,
+  instancing, and pipelined frames for the mesh path.
 
 Windows own their swapchain, surface and synchronization objects. `destroywindow` waits for the
 device to go idle and frees them. Closing the last Vulkan window also destroys the command pool,
 device and instance, so the next window starts from a clean context.
-
-Not yet: pipelines, shaders, buffers, textures on the GPU, depth buffer on the GPU.
-
----
 
 ## 6. Lighting (`lighting.hpp`)
 
